@@ -1,0 +1,30 @@
+capabilities : 
+
+PassiveMonitoringCapabilities(
+supportedDataTypesPassiveMonitoring=[
+DataType(name=Calories, timeType=INTERVAL, format=1), 
+DataType(name=Steps, timeType=INTERVAL, format=2), 
+DataType(name=Daily Floors, timeType=INTERVAL, format=1), 
+DataType(name=Speed, timeType=SAMPLE, format=1), 
+DataType(name=Daily Steps, timeType=INTERVAL, format=2), 
+DataType(name=Daily Calories, timeType=INTERVAL, format=1), 
+DataType(name=Elevation Gain, timeType=INTERVAL, format=1), 
+DataType(name=Daily Distance, timeType=INTERVAL, format=1), 
+DataType(name=Distance, timeType=INTERVAL, format=1), 
+DataType(name=Absolute Elevation, timeType=SAMPLE, format=1), 
+DataType(name=HeartRate, timeType=SAMPLE, format=1), 
+DataType(name=Floors, timeType=INTERVAL, format=1)], 
+
+supportedDataTypesEvents=[
+DataType(name=Calories, timeType=INTERVAL, format=1), 
+DataType(name=Steps, timeType=INTERVAL, format=2), 
+DataType(name=Daily Floors, timeType=INTERVAL, format=1), 
+DataType(name=Speed, timeType=SAMPLE, format=1), 
+DataType(name=Daily Steps, timeType=INTERVAL, format=2), 
+DataType(name=Daily Calories, timeType=INTERVAL, format=1), 
+DataType(name=Elevation Gain, timeType=INTERVAL, format=1), 
+DataType(name=Daily Distance, timeType=INTERVAL, format=1), 
+DataType(name=Distance, timeType=INTERVAL, format=1), 
+DataType(name=Absolute Elevation, timeType=SAMPLE, format=1), 
+DataType(name=HeartRate, timeType=SAMPLE, format=1), 
+DataType(name=Floors, timeType=INTERVAL, format=1)])

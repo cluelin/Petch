@@ -1,39 +1,89 @@
 package com.sideproject.petch
 
+
+import android.Manifest
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.concurrent.futures.await
-import androidx.health.services.client.ExerciseUpdateListener
+import androidx.core.content.ContextCompat
 import androidx.health.services.client.HealthServices
-import androidx.health.services.client.data.*
+import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.PassiveMonitoringConfig
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Enables Always-on
-//        setAmbientEnabled()
 
 
-        checkCapability()
+        val result = checkPermission()
+
+        Log.d(LOG_TAG, "result : $result")
+
 
 
 
 
     }
 
+    private fun checkPermission() : Boolean{
+        permissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+                when (result) {
+                    true -> {
+                        Log.i(LOG_TAG, "Body sensors permission granted")
+                        checkCapability()
+                        registerReceiver()
+                    }
+                    false -> {
+                        Log.i(LOG_TAG, "Body sensors permission not granted")
+                    }
+                }
+            }
+
+
+        when (ContextCompat.checkSelfPermission(applicationContext, PERMISSION_BODY_SENSORS)) {
+            PackageManager.PERMISSION_GRANTED -> {
+                checkCapability()
+                registerReceiver()
+                return true
+            }
+
+            else -> {
+                permissionLauncher.launch(PERMISSION_BODY_SENSORS)
+            }
+        }
+
+        when (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.ACTIVITY_RECOGNITION)) {
+            PackageManager.PERMISSION_GRANTED -> {
+                checkCapability()
+                registerReceiver()
+                return true
+            }
+
+            else -> {
+                permissionLauncher.launch(PERMISSION_BODY_SENSORS)
+            }
+        }
+
+        return false
+    }
+
     private var supportsHeartRate : Boolean = false
 
     private var supportsStepsGoal : Boolean = false
-
-    private var supportsWalk : Boolean = false
 
     fun checkCapability(){
 
@@ -43,6 +93,8 @@ class MainActivity : AppCompatActivity() {
         val passiveMonitoringClient = healthClient.passiveMonitoringClient
         lifecycleScope.launchWhenCreated {
             val capabilities = passiveMonitoringClient.capabilities.await()
+
+            Log.d(LOG_TAG, "capabilities : $capabilities")
             // Supported types for passive data collection
             supportsHeartRate =
                 DataType.HEART_RATE_BPM in capabilities.supportedDataTypesPassiveMonitoring
@@ -50,56 +102,45 @@ class MainActivity : AppCompatActivity() {
             supportsStepsGoal =
                 DataType.STEPS in capabilities.supportedDataTypesEvents
 
-            supportsWalk = DataType.WALKING_STEPS in capabilities.supportedDataTypesEvents
+            val supportsStep =
+                DataType.RUNNING_STEPS in capabilities.supportedDataTypesPassiveMonitoring
 
+            val supportsWalk = DataType.WALKING_STEPS in capabilities.supportedDataTypesEvents
+
+            Log.d("tag", "capabilities : $capabilities")
             Log.d("tag", "supportsHeartRate : $supportsHeartRate")
+            Log.d("tag", "supportsStepsGoal : $supportsStepsGoal")
+            Log.d("tag", "supportsStep : $supportsStep")
+            Log.d("tag", "supportsWalk : $supportsWalk")
         }
 
     }
 
+    fun registerReceiver(){
+        var mContext = this
 
 
+        val dataTypes = setOf(DataType.HEART_RATE_BPM, DataType.STEPS, DataType.RUNNING_STEPS, DataType.WALKING_STEPS)
+        val config = PassiveMonitoringConfig.builder()
+            .setDataTypes(dataTypes)
+            .setComponentName(ComponentName(mContext, BackgroundDataReceiver::class.java))
+            // To receive UserActivityState updates, ACTIVITY_RECOGNITION permission is required.
+//            .setShouldIncludeUserActivityState(true)
+            .build()
 
-g
-    val listener = object : ExerciseUpdateListener {
-        override fun onExerciseUpdate(update: ExerciseUpdate) {
+        lifecycleScope.launch {
 
-            Log.d("injag.jang", "onExerciseUpdate invoked")
-            // Process the latest information about the exercise.
-            var exerciseStatus = update.state // e.g. ACTIVE, USER_PAUSED, etc.
-            var activeDuration = update.activeDuration // Duration
-            var latestMetrics = update.latestMetrics // Map<DataType, List<DataPoint>>
-            var latestAggregateMetrics =
-                update.latestAggregateMetrics // Map<DataType, AggregateDataPoint>
-            var latestGoals = update.latestAchievedGoals // Set<AchievedExerciseGoal>
-            var latestMilestones =
-                update.latestMilestoneMarkerSummaries // Set<MilestoneMarkerSummary>
-
-        }
-
-        override fun onLapSummary(lapSummary: ExerciseLapSummary) {
-            // For ExerciseTypes that support laps, this is called when a lap is marked.
-            Log.d("injae.jang", "onLapSummary invoked")
-        }
-
-        override fun onAvailabilityChanged(dataType: DataType, availability: Availability) {
-
-            Log.d("injae.jang", "onAvailabilityChanged invoked")
-            // Called when the availability of a particular DataType changes.
-            when {
-                availability is LocationAvailability -> {
-                    // Relates to Location / GPS
-                }
-                availability is DataTypeAvailability ->{
-                    // Relates to another DataType
-                }
-            }
+            HealthServices.getClient(mContext)
+                .passiveMonitoringClient
+                .registerDataCallback(config)
+                .await()
         }
     }
 
+    companion object{
+        private val LOG_TAG = MainActivity::class.java.simpleName
 
-
-
-
+        private const val PERMISSION_BODY_SENSORS = "android.permission.BODY_SENSORS"
+    }
 
 }
